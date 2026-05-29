@@ -28,16 +28,18 @@ The user's current setup is working. Low composite pain, at most one mild wall, 
 wallsHit <= 2 AND counterScore >= 6
 ```
 
-Few walls are hit and the user has high resistance to integrated solutions (portability, speed, or cost concerns). Route to the specific open-source tool that addresses their nearest wall:
+Few walls are hit and the user has high resistance to integrated solutions (portability, speed, or cost concerns). Route to the destination that addresses their nearest wall. Routes are named by the wall they serve, not by the tool — the recommended tool per wall is defined in the routing content and is expected to change as the tooling landscape shifts.
 
-| Nearest Wall | Route | Tool |
+| Nearest Wall | Route | Destination (tool as of 2026-05) |
 |-------------|-------|------|
-| Identity | `DIY_OPEN_BRAIN` | Open Brain |
-| Decision Memory | `DIY_LOGSEQ_CLAUDE` | Logseq + Claude |
-| Attention | `DIY_KHOJ` | Khoj |
-| Write-Back | `DIY_OPEN_MEMORY` | OpenMemory |
+| Identity | `DIY_IDENTITY` | Open Brain |
+| Decision Memory | `DIY_DECISION_MEMORY` | Obsidian + Claude |
+| Attention | `DIY_ATTENTION` | NotebookLM |
+| Write-Back | `DIY_WRITE_BACK` | basic-memory |
+| Governance | `DIY_GOVERNANCE` | No DIY tool — honest "watch this wall" message + soft pointer to how FridayOS approaches it |
+| Economics | `DIY_ECONOMICS` | OpenRouter |
 
-If the nearest wall is Governance or Economics (no DIY tool mapped), falls through to `APPROACHING_WALLS`.
+All six walls now map to a destination. Governance is intentionally routed to an honest message rather than a tool, because no DIY governance tool currently meets the bar for a public recommendation — controlling and auditing AI access is a platform-class problem. The message points to how FridayOS approaches governance as the category answer (a soft pointer, not a hard sell — this route only fires for respondents who have signaled a hard constraint against integrated solutions, so they are never pushed toward the platform against a stated constraint). Tools were vetted for active maintenance and real community adoption (2026-05).
 
 ### 3. NOT_READY_YET
 

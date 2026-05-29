@@ -125,12 +125,16 @@ export type WallScores = Record<WallKey, number>
 /** Per-counter-dimension score on a 0-10 scale. */
 export type CounterDimensionScores = Record<CounterDimension, number>
 
+// DIY routes are named by the wall they serve, not by the tool — the recommended
+// tool per wall lives in the routing content and is expected to change over time.
 export type Route =
   | "STAY_PUT"
-  | "DIY_OPEN_BRAIN"
-  | "DIY_LOGSEQ_CLAUDE"
-  | "DIY_KHOJ"
-  | "DIY_OPEN_MEMORY"
+  | "DIY_IDENTITY"
+  | "DIY_DECISION_MEMORY"
+  | "DIY_ATTENTION"
+  | "DIY_WRITE_BACK"
+  | "DIY_GOVERNANCE"
+  | "DIY_ECONOMICS"
   | "APPROACHING_WALLS"
   | "NOT_READY_YET"
   | "FRIDAYOS_FIT"

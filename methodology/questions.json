@@ -35,7 +35,7 @@
           "options": [
             { "code": "vanilla_ai", "label": "Personal AI assistant (ChatGPT, Claude, Gemini) with no structured knowledge base", "value": 1 },
             { "code": "ai_plus_kb", "label": "AI + personal knowledge base (Obsidian, Notion, Apple Notes, etc.)", "value": 2 },
-            { "code": "diy_memory", "label": "DIY AI-memory system (Open Brain, Khoj, Claude Projects, etc.)", "value": 3 },
+            { "code": "diy_memory", "label": "DIY AI-memory system (Open Brain, NotebookLM, Obsidian, Claude Projects, etc.)", "value": 3 },
             { "code": "multi_tool", "label": "Multiple AI tools stitched together across workflows", "value": 4 },
             { "code": "no_ai", "label": "Not using AI for business operations yet", "value": 0 }
           ]
@@ -235,25 +235,34 @@
       "cta_primary": "Join the Friday OS beta waitlist",
       "cta_secondary": "Book a Readiness Workshop"
     },
-    "diy_open_brain": {
+    "diy_identity": {
       "label": "Open Brain",
-      "description": "A shared AI-memory layer that addresses multi-user context sharing.",
-      "url": "https://github.com/open-brain-ai/open-brain"
+      "description": "An open-source shared-memory layer so Claude, ChatGPT, and other tools all work from one picture of you and your business.",
+      "url": "https://github.com/NateBJones-Projects/OB1"
     },
-    "diy_khoj": {
-      "label": "Khoj",
-      "description": "An AI assistant with autonomous search and notification capabilities.",
-      "url": "https://khoj.dev"
+    "diy_attention": {
+      "label": "NotebookLM",
+      "description": "Google's free, hosted tool for chatting with your own documents — answers grounded only in the sources you give it. Nothing to install.",
+      "url": "https://notebooklm.google"
     },
-    "diy_logseq_claude": {
-      "label": "Logseq + Claude",
-      "description": "A knowledge graph structure combined with AI for decision traces and institutional memory.",
-      "url": "https://logseq.com"
+    "diy_decision_memory": {
+      "label": "Obsidian + Claude",
+      "description": "A local, backlinked knowledge graph for decisions and their reasoning, connected to Claude so your AI can read and write your decision log.",
+      "url": "https://obsidian.md"
     },
-    "diy_open_memory": {
-      "label": "OpenMemory",
-      "description": "Persistent AI context across sessions for automatic knowledge capture.",
-      "url": "https://github.com/mem0ai/mem0"
+    "diy_write_back": {
+      "label": "basic-memory",
+      "description": "Lets your AI write what it learns back into plain Markdown files you own, so insights persist across tools and sessions.",
+      "url": "https://basicmemory.com"
+    },
+    "diy_governance": {
+      "label": "Watch this wall",
+      "description": "There's no DIY tool we'd stake our name on for governance yet — controlling and auditing what your AI can access is a platform-class problem."
+    },
+    "diy_economics": {
+      "label": "OpenRouter",
+      "description": "Routes your AI calls through one hosted dashboard so you can see spend per model and workflow and set usage alerts. No infrastructure to run.",
+      "url": "https://openrouter.ai"
     },
     "stay_put": {
       "label": "Stay where you are",

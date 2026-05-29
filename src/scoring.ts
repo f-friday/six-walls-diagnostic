@@ -164,11 +164,16 @@ interface RouteInput {
   notStarted: boolean
 }
 
-const DIY_WALL_MAP: Partial<Record<WallKey, Route>> = {
-  identity: "DIY_OPEN_BRAIN",
-  decision_memory: "DIY_LOGSEQ_CLAUDE",
-  attention: "DIY_KHOJ",
-  write_back: "DIY_OPEN_MEMORY",
+// Every wall maps to a destination. The four memory walls route to a vetted DIY
+// tool; governance routes to an honest "no DIY tool yet" message (platform-class);
+// economics routes to a hosted cost tool.
+const DIY_WALL_MAP: Record<WallKey, Route> = {
+  identity: "DIY_IDENTITY",
+  decision_memory: "DIY_DECISION_MEMORY",
+  attention: "DIY_ATTENTION",
+  write_back: "DIY_WRITE_BACK",
+  governance: "DIY_GOVERNANCE",
+  economics: "DIY_ECONOMICS",
 }
 
 function computeRoute(input: RouteInput): Route {
@@ -188,9 +193,7 @@ function computeRoute(input: RouteInput): Route {
 
   // Route 2: DIY specific tool — few walls hit, high counter score
   if (wallsHit <= 2 && counterScore >= 6) {
-    const diyRoute = DIY_WALL_MAP[nearestWall]
-    if (diyRoute) return diyRoute
-    return "APPROACHING_WALLS"
+    return DIY_WALL_MAP[nearestWall]
   }
 
   // Route 3: NOT_READY_YET — high walls but very high counter resistance

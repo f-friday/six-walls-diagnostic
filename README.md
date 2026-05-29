@@ -38,21 +38,32 @@ Full scoring methodology: [`methodology/scoring.md`](methodology/scoring.md)
 
 ## Routes
 
-The diagnostic routes to one of nine outcomes:
+The diagnostic routes to one of eleven outcomes. DIY routes are named by the wall they serve; the recommended tool per wall lives in the routing content and may change over time (tool shown is current as of 2026-05):
 
 | Route | Meaning |
 |-------|---------|
 | `FRIDAYOS_FIT` | Multiple structural walls hit; an integrated AI operating system addresses the pattern. |
-| `DIY_OPEN_BRAIN` | Identity wall is dominant; Open Brain addresses multi-user context sharing. |
-| `DIY_KHOJ` | Attention wall is dominant; Khoj provides autonomous search and notifications. |
-| `DIY_LOGSEQ_CLAUDE` | Decision Memory wall is dominant; Logseq + Claude enables decision traces. |
-| `DIY_OPEN_MEMORY` | Write-Back wall is dominant; OpenMemory provides persistent cross-session capture. |
+| `DIY_IDENTITY` | Identity wall is dominant; Open Brain gives multiple AI tools a shared picture of you and your business. |
+| `DIY_DECISION_MEMORY` | Decision Memory wall is dominant; Obsidian + Claude captures decisions and their reasoning. |
+| `DIY_ATTENTION` | Attention wall is dominant; NotebookLM surfaces answers grounded in your own documents. |
+| `DIY_WRITE_BACK` | Write-Back wall is dominant; basic-memory persists what your AI learns across tools and sessions. |
+| `DIY_GOVERNANCE` | Governance wall is dominant; no DIY tool meets the bar — an honest "watch this wall / platform-class" message. |
+| `DIY_ECONOMICS` | Economics wall is dominant; OpenRouter gives hosted spend visibility across models and workflows. |
 | `STAY_PUT` | Current setup is working. No structural walls hit. |
 | `APPROACHING_WALLS` | Walls are forming but not yet structural. Watch list provided. |
 | `NOT_READY_YET` | Walls are real, but counter-dimension resistance is too high for an integrated solution now. |
 | `DIY_WITH_AWARENESS` | Moderate walls with no dominant pattern. DIY is viable with awareness of limits. |
 
 Full routing logic: [`methodology/routing.md`](methodology/routing.md)
+
+## The broader landscape
+
+The diagnostic routes to a small set of tools chosen for fit and health (current set in [`methodology/routing.md`](methodology/routing.md)). It is not an attempt to catalog the whole space. The wider AI-memory and agent ecosystem is large and moving fast, and the framework is meant to be the lens you judge any of it against — not a list to adopt wholesale:
+
+- **Personal knowledge / AI-memory:** [Khoj](https://github.com/khoj-ai/khoj), [Logseq](https://github.com/logseq/logseq), [mem0](https://github.com/mem0ai/mem0), [Letta](https://github.com/letta-ai/letta), and others. Strong communities; some are mid-transition or assume a technical setup, which is why the diagnostic routes only to the subset that currently fits a given wall.
+- **Developer-grade agent runtimes:** [OpenClaw](https://github.com/openclaw/openclaw), [Hermes](https://github.com/NousResearch/hermes-agent), [OpenHands](https://github.com/OpenHands/OpenHands), and similar. These are powerful and widely used, but they are developer-oriented and several run with broad default permissions (shell, email, calendar) — adopt them deliberately, with permissions scoped to what you actually need.
+
+We track this landscape and update the routing as tools mature, change, or stop being maintained.
 
 ## Repository Structure
 

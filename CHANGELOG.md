@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-05-28
+
+Tool-recommendation refresh + wall-based route naming, after a community-validation research pass (all links verified, every tool checked for active maintenance and real adoption).
+
+- **Replaced three degrading recommendations.** Khoj (cloud sunset April 2026, team pivoting) → **NotebookLM**; Logseq + Claude (Logseq mid-split into two apps in 2026) → **Obsidian + Claude**; OpenMemory (sunset notice in its own repo, dev-only) → **basic-memory**. Open Brain (Identity) was kept and its link standardized.
+- **Closed the two unmapped walls.** Governance and Economics previously fell through to a generic "approaching walls" message. **Economics** now routes to **OpenRouter**; **Governance** routes to an honest "no DIY tool yet — this is a platform-class problem" message (no fabricated recommendation).
+- **Renamed DIY routes from tool-based to wall-based** (`DIY_KHOJ` → `DIY_ATTENTION`, etc.) so future tool changes touch only content, never the engine or stored data. Eleven routes total.
+- **Added a "broader landscape" section** acknowledging tools the diagnostic does not route to (Khoj, Logseq, mem0; developer-grade agent runtimes OpenClaw, Hermes, OpenHands), with an honest note on their technical level and permission posture.
+
 ## 1.1.0 — 2026-05-28
 
 Routing honesty + calibration fixes, validated against a blind expert-panel test.

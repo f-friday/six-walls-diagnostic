@@ -6,7 +6,7 @@
 
 ## What This Is
 
-The Six Walls Diagnostic is a 14-question assessment that evaluates how close a business is to hitting the structural limits of its current AI setup. It uses the Six Walls framework to measure pain across six dimensions, then routes respondents honestly -- to the right tool, even if that tool is not ours.
+The Six Walls Diagnostic is a 15-question assessment (14 scored, plus one optional question about your AI working environment) that evaluates how close a business is to hitting the structural limits of its current AI setup. It uses the Six Walls framework to measure pain across six dimensions, then routes respondents honestly -- to the right tool, even if that tool is not ours.
 
 The methodology, scoring engine, and routing algorithm are open. Fork it, adapt it, build on it.
 
@@ -38,7 +38,7 @@ Full scoring methodology: [`methodology/scoring.md`](methodology/scoring.md)
 
 ## Routes
 
-The diagnostic routes to one of eleven outcomes. DIY routes are named by the wall they serve; the recommended tool per wall lives in the routing content and may change over time (tool shown is current as of 2026-05):
+The diagnostic routes to one of thirteen outcomes. DIY routes are named by the wall they serve; the recommended tool per wall lives in the routing content and may change over time (tool shown is current as of 2026-05):
 
 | Route | Meaning |
 |-------|---------|
@@ -53,6 +53,10 @@ The diagnostic routes to one of eleven outcomes. DIY routes are named by the wal
 | `APPROACHING_WALLS` | Walls are forming but not yet structural. Watch list provided. |
 | `NOT_READY_YET` | Walls are real, but counter-dimension resistance is too high for an integrated solution now. |
 | `DIY_WITH_AWARENESS` | Moderate walls with no dominant pattern. DIY is viable with awareness of limits. |
+| `SUBSTRATE_GSTACK` | A 1–2 wall taker who works in a CLI agent or AI IDE; gstack (cross-CLI operator overlay) leads, with the wall-specific tool as the alternate. |
+| `SUBSTRATE_AGENT_BRAIN` | A 1–2 wall taker building on an agent runtime; an agent-brain layer (memory-os / gbrain) leads, with the wall-specific tool as the alternate. |
+
+The last two are **cohort-modulated** outcomes. After the wall-based route is computed, an optional question about the taker's AI working environment (`q_cohort`) can elevate a substrate-class tool to the primary recommendation for the 1–2 wall outcomes only — it never overrides `STAY_PUT`, `NOT_READY_YET`, `FRIDAYOS_FIT`, or `APPROACHING_WALLS`, and chat-only / no-setup takers are left on the wall-based route. Wall-routing stays primary.
 
 Full routing logic: [`methodology/routing.md`](methodology/routing.md)
 

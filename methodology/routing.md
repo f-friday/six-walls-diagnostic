@@ -2,7 +2,7 @@
 
 This document describes how the Six Walls Diagnostic routes respondents to a recommendation. The algorithm uses composite wall score, counter score, friction, growth, nearest wall, and walls-hit count.
 
-Routes are evaluated in order. The first matching route wins.
+Routing has two stages: a **wall-based route** is computed first (the ordered evaluation below — the first matching route wins), then an optional **cohort modulation** step may elevate a substrate-class tool to the primary recommendation for the 1–2 wall outcomes (see [Cohort Modulation](#cohort-modulation-post-step)). Wall-routing is always primary; the cohort signal only re-frames which tool leads.
 
 ## Route Evaluation Order
 
@@ -69,6 +69,31 @@ Moderate composite pain with high growth trajectory. The walls aren't fully stru
 
 If no other route matches, the user has moderate walls with no dominant pattern. A DIY approach is viable, but they should be aware of the walls forming.
 
+## Cohort Modulation (post-step)
+
+After the wall-based route is computed, an optional cohort signal — the taker's primary AI working environment (`q_cohort`) — can re-frame the recommendation. This addresses a class of taker for whom the honest answer to a single wall is not a per-wall tool but a **substrate-class tool** that sits underneath their whole AI workflow.
+
+The cohort question is optional. If it is unanswered (or the answer is unrecognized), the wall-based route passes through unchanged.
+
+Only the **1–2 wall outcomes** are modulatable — the `DIY_*` family and `DIY_WITH_AWARENESS`. When the base route is one of those AND the cohort makes a substrate the honest fit, the substrate becomes the **primary** recommendation and the original wall-specific tool is surfaced as the **alternate** alongside it.
+
+| Cohort (working environment) | Modulated route | Primary recommendation |
+|------------------------------|-----------------|------------------------|
+| CLI agent (Claude Code, Codex CLI, Gemini CLI, Copilot CLI) | `SUBSTRATE_GSTACK` | gstack — cross-CLI operator overlay |
+| AI-native IDE (Cursor, etc.) | `SUBSTRATE_GSTACK` | gstack — cross-CLI operator overlay |
+| Agent runtime (OpenHands, smolagents, Mastra, Letta, OpenClaw, Hermes) | `SUBSTRATE_AGENT_BRAIN` | Agent-brain layer (memory-os / gbrain) |
+| Chat interfaces (ChatGPT, Claude.ai, Gemini) | *(unchanged)* | wall-based route stands |
+| No specific setup / unsure | *(unchanged)* | wall-based route stands |
+
+These routes are **never** modulated, regardless of cohort — the wall-based answer is already the honest one:
+
+- `STAY_PUT` — no walls hit; a substrate would be over-prescription.
+- `NOT_READY_YET` — a hard portability/cost/speed constraint is stated; respect the constraint.
+- `FRIDAYOS_FIT` — multiple structural walls (or a scaled team); the integrated platform is the fit.
+- `APPROACHING_WALLS` — a growth-trajectory signal with no wall actively hitting yet.
+
+The `chat_interfaces` and `no_setup` cohorts never receive substrate routing: gstack and the agent-brain layers assume a CLI / IDE / runtime fluency that those takers don't have, so recommending one would be dishonest.
+
 ## Design Principles
 
 1. **Honest routing over conversion.** The algorithm routes away from the commercial product (FridayOS) when the user's situation doesn't warrant it. Roughly 25% of takers are routed to other tools.
@@ -84,3 +109,5 @@ If no other route matches, the user has moderate walls with no dominant pattern.
 6. **Absence is not a wall.** A respondent who hasn't started with AI answers "no system" to the wall questions, which would otherwise read as maximum friction. The not-started pre-check separates "hasn't adopted yet" from "hitting structural limits," so non-adopters are never routed to a platform purchase.
 
 7. **Constraints outrank wall count.** A hard portability, cost, or speed constraint (high counter score) routes a respondent away from the integrated product even when multiple walls are present — the honest-routing commitment is enforced at the routing layer, not just in copy.
+
+8. **Match the recommendation to the substrate.** For a taker hitting a single wall, the honest tool depends on where they already work. Someone living in a CLI agent or AI IDE is better served by a substrate that sits under their whole workflow (gstack) than by a per-wall point tool; someone on an agent runtime is better served by an agent-brain layer (memory-os / gbrain). Cohort modulation only ever fires on 1–2 wall outcomes, and only for environments fluent enough to adopt a substrate — it never overrides STAY_PUT, NOT_READY_YET, FRIDAYOS_FIT, or APPROACHING_WALLS, and it leaves chat-only and no-setup takers on the wall-based route.

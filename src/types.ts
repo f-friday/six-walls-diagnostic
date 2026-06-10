@@ -21,7 +21,17 @@ export type WallKey =
 
 export type CounterDimension = "portability" | "time_to_value" | "cost_sensitivity"
 
-export type QuestionPurpose = "segmentation" | "baseline" | "friction" | "growth_trajectory"
+export type QuestionPurpose = "segmentation" | "baseline" | "friction" | "growth_trajectory" | "cohort"
+
+// Cohort signal — taker's primary AI working environment.
+// Modulates wall-routing to surface substrate-class tools (gstack, memory-os, gbrain)
+// for the cohorts where they're the honest fit. Walls remain primary.
+export type CohortKey =
+  | "cli_agent"
+  | "ai_ide"
+  | "agent_runtime"
+  | "chat_interfaces"
+  | "no_setup"
 
 /** An option on a profile question (value-based, no wall score). */
 export interface ProfileOption {
@@ -127,6 +137,11 @@ export type CounterDimensionScores = Record<CounterDimension, number>
 
 // DIY routes are named by the wall they serve, not by the tool — the recommended
 // tool per wall lives in the routing content and is expected to change over time.
+//
+// SUBSTRATE_* routes are cohort-modulated outcomes: when a taker is hitting 1–2 walls
+// AND their working environment makes a substrate-class tool the honest fit
+// (CLI/IDE → gstack; agent runtime → memory-os / gbrain), the wall-specific
+// recommendation becomes the alt and the substrate becomes the primary.
 export type Route =
   | "STAY_PUT"
   | "DIY_IDENTITY"
@@ -139,6 +154,8 @@ export type Route =
   | "NOT_READY_YET"
   | "FRIDAYOS_FIT"
   | "DIY_WITH_AWARENESS"
+  | "SUBSTRATE_GSTACK"
+  | "SUBSTRATE_AGENT_BRAIN"
 
 export interface AssessmentResult {
   wallScores: WallScores
@@ -150,4 +167,7 @@ export interface AssessmentResult {
   route: Route
   nearestWall: WallKey
   wallsHit: number
+  // Cohort signal — taker's primary AI working environment, used to modulate `route`
+  // (see scoring.ts). Optional for backwards-compat with pre-1.1 result objects.
+  cohort?: CohortKey
 }

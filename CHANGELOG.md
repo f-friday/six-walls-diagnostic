@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-06-08
+
+Cohort-modulated routing — substrate-class routes for environment-aware recommendations.
+
+- **Added an optional cohort question** (`q_cohort`, "where do you work with AI day-to-day"). It carries no wall score and does not affect any scoring metric — it is a routing signal only. Assessment count is now 15 (14 scored + 1 optional).
+- **Added two substrate-class routes.** `SUBSTRATE_GSTACK` (gstack — cross-CLI operator overlay) and `SUBSTRATE_AGENT_BRAIN` (agent-brain layer: memory-os / gbrain). These recognize that for a taker hitting a single wall, the honest answer is often a substrate that sits under their whole AI workflow, not a per-wall point tool.
+- **Cohort modulation is a post-step on the 1–2 wall outcomes only.** After the wall-based route is computed, a CLI-agent / AI-IDE cohort modulates a `DIY_*` or `DIY_WITH_AWARENESS` route to `SUBSTRATE_GSTACK`; an agent-runtime cohort modulates it to `SUBSTRATE_AGENT_BRAIN`. The original wall-specific tool is surfaced as the alternate. `STAY_PUT`, `NOT_READY_YET`, `FRIDAYOS_FIT`, and `APPROACHING_WALLS` are never modulated, and the `chat_interfaces` / `no_setup` cohorts never receive substrate routing (they lack the CLI/IDE/runtime fluency a substrate assumes). An absent or unrecognized cohort answer leaves the wall-based route unchanged.
+- Engine: `Route` gains the two substrate members, `AssessmentResult` gains an optional `cohort` field, and `QuestionPurpose` gains `"cohort"`.
+
 ## 1.2.0 — 2026-05-28
 
 Tool-recommendation refresh + wall-based route naming, after a community-validation research pass (all links verified, every tool checked for active maintenance and real adoption).

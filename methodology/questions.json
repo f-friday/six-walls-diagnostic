@@ -1,9 +1,9 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "metadata": {
     "title": "The Six Walls Diagnostic",
     "estimated_minutes": 10,
-    "question_count": 14,
+    "question_count": 15,
     "license": "CC BY 4.0",
     "author": "Framework Friday"
   },
@@ -38,6 +38,20 @@
             { "code": "diy_memory", "label": "DIY AI-memory system (Open Brain, NotebookLM, Obsidian, Claude Projects, etc.)", "value": 3 },
             { "code": "multi_tool", "label": "Multiple AI tools stitched together across workflows", "value": 4 },
             { "code": "no_ai", "label": "Not using AI for business operations yet", "value": 0 }
+          ]
+        },
+        {
+          "id": "q_cohort",
+          "text": "Where do you work with AI day-to-day — what’s your environment? (Optional — for routing your recommendation more precisely.)",
+          "type": "single_select",
+          "wall": null,
+          "purpose": "cohort",
+          "options": [
+            { "code": "cli_agent", "label": "I work in a CLI agent like Claude Code, Codex CLI, Gemini CLI, or GitHub Copilot CLI", "value": 1 },
+            { "code": "ai_ide", "label": "I work in an AI-native IDE like Cursor (which also has a CLI now)", "value": 2 },
+            { "code": "agent_runtime", "label": "I’ve built on (or use a personal build of) an agent runtime like OpenHands, smolagents, Mastra, Letta, OpenClaw, or Hermes", "value": 3 },
+            { "code": "chat_interfaces", "label": "I mostly use chat interfaces (ChatGPT, Claude.ai, Gemini)", "value": 4 },
+            { "code": "no_setup", "label": "I have no specific setup / I’m not sure what these are", "value": 5 }
           ]
         }
       ]
@@ -271,6 +285,18 @@
     "approaching_walls": {
       "label": "Watch these walls",
       "description": "You're approaching structural limits. Here's what to watch for."
+    },
+    "substrate_gstack": {
+      "label": "gstack",
+      "description": "Garry Tan's MIT-licensed cross-CLI operator overlay. Auto-detects Claude Code, Codex, Cursor, Gemini, and other AI coding agents. The right primary when your nearest wall is single and your working environment is already CLI- or IDE-first.",
+      "url": "https://github.com/garrytan/gstack",
+      "cta_primary": "Open gstack on GitHub",
+      "cta_secondary": "Read the wall-specific alternate below"
+    },
+    "substrate_agent_brain": {
+      "label": "Agent-brain layer (memory-os / gbrain)",
+      "description": "An agent-brain layer for takers building on agent runtimes. memory-os is the Hermes-stack 7-layer memory OS (MIT, ClaudioDrews); gbrain is the OpenClaw/Hermes brain layer (MIT, Garry Tan). Self-check between them based on which runtime you're on.",
+      "cta_primary": "Read memory-os and gbrain references"
     }
   }
 }

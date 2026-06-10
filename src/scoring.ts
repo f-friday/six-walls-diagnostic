@@ -14,12 +14,21 @@ import { getQuestion } from "./questions"
 import type {
   AssessmentAnswers,
   AssessmentResult,
+  CohortKey,
   WallKey,
   WallScores,
   CounterDimensionScores,
   Route,
   ScoredOption,
 } from "./types"
+
+const VALID_COHORTS: readonly CohortKey[] = [
+  "cli_agent",
+  "ai_ide",
+  "agent_runtime",
+  "chat_interfaces",
+  "no_setup",
+] as const
 
 const ALL_WALLS: WallKey[] = [
   "identity",
@@ -218,6 +227,47 @@ function computeRoute(input: RouteInput): Route {
 }
 
 // ---------------------------------------------------------------------------
+// Cohort modulation
+// ---------------------------------------------------------------------------
+
+// Wall-routing is primary; cohort modulates only the 1–2 wall outcomes (the DIY_*
+// family and DIY_WITH_AWARENESS) by elevating a substrate-class tool to the primary
+// recommendation when the taker's working environment makes one the honest fit.
+//
+// Unchanged regardless of cohort:
+//   STAY_PUT          — no walls hit; substrate would be over-prescription
+//   NOT_READY_YET     — hard portability/cost/speed constraint; respect the constraint
+//   FRIDAYOS_FIT      — multi-wall or scaled-team signal; FridayOS wins
+//   APPROACHING_WALLS — growth-trajectory signal but no walls actively hitting yet
+//
+// chat_interfaces / no_setup cohorts never receive substrate routing — gstack and
+// the agent-brain layers assume CLI/IDE/runtime fluency that those takers don't have.
+const SUBSTRATE_MODULATABLE: ReadonlySet<Route> = new Set<Route>([
+  "DIY_IDENTITY",
+  "DIY_DECISION_MEMORY",
+  "DIY_ATTENTION",
+  "DIY_WRITE_BACK",
+  "DIY_GOVERNANCE",
+  "DIY_ECONOMICS",
+  "DIY_WITH_AWARENESS",
+])
+
+function modulateRouteByCohort(base: Route, cohort: CohortKey | undefined): Route {
+  if (!cohort) return base
+  if (!SUBSTRATE_MODULATABLE.has(base)) return base
+  switch (cohort) {
+    case "cli_agent":
+    case "ai_ide":
+      return "SUBSTRATE_GSTACK"
+    case "agent_runtime":
+      return "SUBSTRATE_AGENT_BRAIN"
+    case "chat_interfaces":
+    case "no_setup":
+      return base
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -265,8 +315,8 @@ export function scoreAssessment(answers: AssessmentAnswers): AssessmentResult {
   const notStarted =
     answers["q2_current_setup"] === "no_ai" || answers["q13_friction"] === "not_started"
 
-  // 7. Route
-  const route = computeRoute({
+  // 7. Route (wall-based)
+  const baseRoute = computeRoute({
     compositeWallScore,
     counterScore,
     frictionScore,
@@ -275,6 +325,17 @@ export function scoreAssessment(answers: AssessmentAnswers): AssessmentResult {
     wallsHit,
     notStarted,
   })
+
+  // 8. Cohort modulation. Narrow the raw cohort answer to CohortKey so downstream
+  // code gets a typed value. The cohort question is optional in the UI; an absent or
+  // unrecognized answer leaves `cohort` undefined and `modulateRouteByCohort()` passes
+  // the base route through unchanged.
+  const rawCohort = answers["q_cohort"] as string | undefined
+  const cohort = rawCohort && (VALID_COHORTS as readonly string[]).includes(rawCohort)
+    ? (rawCohort as CohortKey)
+    : undefined
+
+  const route = modulateRouteByCohort(baseRoute, cohort)
 
   return {
     wallScores,
@@ -286,6 +347,7 @@ export function scoreAssessment(answers: AssessmentAnswers): AssessmentResult {
     route,
     nearestWall,
     wallsHit,
+    cohort,
   }
 }
 

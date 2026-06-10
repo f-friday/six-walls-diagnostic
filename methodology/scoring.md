@@ -73,6 +73,10 @@ The wall with the highest individual score. Ties are broken by wall number (lowe
 
 Count of walls scoring **6 or above** — the threshold where a wall becomes structurally painful.
 
+## Cohort Signal
+
+The optional cohort question (`q_cohort`) captures the taker's primary AI working environment. It carries **no wall score** and does not affect any of the metrics above — it is read during scoring, narrowed to a known cohort (`cli_agent`, `ai_ide`, `agent_runtime`, `chat_interfaces`, `no_setup`), and passed through to the routing layer, where it can modulate the wall-based route on 1–2 wall outcomes (see [`routing.md`](routing.md#cohort-modulation-post-step)). An absent or unrecognized answer is left undefined and the wall-based route stands.
+
 ## Rounding
 
 All computed scores are rounded to two decimal places. Wall scores are clamped to [0, 10].

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0 — 2026-09-14
+
+A rewrite. The 2025 questions no longer described how people work with AI, and the people they failed were the ones the framework is for: operators who built their own systems, or who run agents inside their tools.
+
+- **Eight questions, not fifteen.** Two about the business, one per wall. Every wall question includes the answer a well-run business would give, so a truthful zero is possible, and a "none of these" escape with a free-text line, which is stored and read; the escape text is how the questions evolve.
+- **The three buy-readiness questions are gone as questions.** Constraints are one optional question on the results page, and a constraint can be *stated* or *hard*. A hard constraint removes every FridayOS mention from the result (the carve-out ruled in June 2026, now asked rather than inferred).
+- **Thirteen routes become four outcome families**, each rendered with equal weight: walls an operating system solves; one wall, one good tool; walls forming; you are fine.
+- **The wedge rule.** A coding-agent operator with two or more walls, or with more people in the business than AI users, is routed to a personal FridayOS rather than to a substrate. A single-wall solo builder is still routed to gstack.
+- **Approved recommendations register published** (`methodology/register.md`): every tool the diagnostic may name, who made it, when it was last checked, who approved it.
+- **The 25% routing-away target is retired.** The routing distribution is published quarterly from a live read instead.
+- **Publisher: Centrifuse.** Author, publisher and attribution lines updated. Framework Friday was retired as a brand on 2026-09-01.
+- Engine: `src/types.ts`, `src/questions.ts` and `src/scoring.ts` rewritten for the new question file and the four families; `src/check.ts` added (five example people, run with `npx tsx src/check.ts`).
+
+## 1.2 (wording) — 2026-06-11, unpublished until now
+
+The live site shipped a full rewording of fourteen of fifteen questions ("Version C") on 2026-06-11. Scores, codes and wall flags were unchanged. It was never pushed to this repo, so takers answered wording this repo did not carry for three months. Recorded here so the record is honest; 2.0.0 supersedes it.
+
 ## 1.3.0 — 2026-06-08
 
 Cohort-modulated routing — substrate-class routes for environment-aware recommendations.

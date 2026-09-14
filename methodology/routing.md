@@ -1,113 +1,112 @@
-# Routing Algorithm
+# Routing
 
-This document describes how the Six Walls Diagnostic routes respondents to a recommendation. The algorithm uses composite wall score, counter score, friction, growth, nearest wall, and walls-hit count.
+This document describes how the Six Walls Diagnostic (version 2.0.0) turns the scores and signals in [`scoring.md`](scoring.md) into one of four outcome families, and what each family names. It is written so a person can route a scored diagnostic by hand and get the same answer the reference engine in [`src/scoring.ts`](../src/scoring.ts) gives.
 
-Routing has two stages: a **wall-based route** is computed first (the ordered evaluation below — the first matching route wins), then an optional **cohort modulation** step may elevate a substrate-class tool to the primary recommendation for the 1–2 wall outcomes (see [Cohort Modulation](#cohort-modulation-post-step)). Wall-routing is always primary; the cohort signal only re-frames which tool leads.
+Routing has three parts, in order: a **not-started pre-check**, the **family rule**, and two adjustments that change what leads inside a family without changing the family: the **substrate rule** and **constraints**.
 
-## Route Evaluation Order
+Version 1 routed to thirteen named routes. Version 2 folds them into four families: the six `DIY_*` routes and `DIY_WITH_AWARENESS` become **tool**; `FRIDAYOS_FIT` becomes **os**; `APPROACHING_WALLS` becomes **forming**; `STAY_PUT` becomes **fine**; `NOT_READY_YET` is handled by the constraint rule rather than by a family of its own; the two `SUBSTRATE_*` routes become the substrate rule.
 
-### 0. NOT-STARTED (pre-check)
+## Inputs
 
-```
-currentSetup == "no_ai" OR friction == "not_started"
-```
+From [`scoring.md`](scoring.md):
 
-The respondent hasn't operationalized AI for business yet. Their "no system" answers (no decision record, nothing captured, tracking in their head) score as maximum wall friction — but absence of a system is not the same as hitting a structural wall. Route on readiness: `APPROACHING_WALLS` if growth is high, otherwise `STAY_PUT`. This runs before wall logic so a non-adopter is never told to buy a platform.
+- `hit`: the structural walls (score 6 or more, not inactive, not escaped), highest first.
+- `next`: the highest non-structural wall at 3 or more, or none.
+- `teamSignal`: more people in the business than AI users, or the trajectory answer says the team is coming.
+- `notStarted`: setup answered "We are not really using AI in the business yet".
+- `growth`: 1 to 8 from the trajectory question, or absent.
+- `cohort`: chat, workspace, tools, own_system, cli, none, or unknown.
+- `constraints`: each stated or hard.
 
-### 1. STAY_PUT
-
-```
-compositeWallScore <= 4 AND wallsHit <= 1 AND frictionScore <= 4 AND growthScore < 6
-```
-
-The user's current setup is working. Low composite pain, at most one mild wall, low friction, and no growth trajectory pushing toward the walls. A single mild wall or once-a-month friction does not disqualify staying put. The honest answer is: stay where you are.
-
-### 2. DIY Tool Routes
+## 0. The not-started pre-check (carried from version 1)
 
 ```
-wallsHit <= 2 AND counterScore >= 6
+notStarted == true
 ```
 
-Few walls are hit and the user has high resistance to integrated solutions (portability, speed, or cost concerns). Route to the destination that addresses their nearest wall. Routes are named by the wall they serve, not by the tool — the recommended tool per wall is defined in the routing content and is expected to change as the tooling landscape shifts.
+If setup is "not using AI yet", every wall question would read as maximum pain for the wrong reason. The taker is routed on readiness, not on walls:
 
-| Nearest Wall | Route | Destination (tool as of 2026-05) |
-|-------------|-------|------|
-| Identity | `DIY_IDENTITY` | Open Brain |
-| Decision Memory | `DIY_DECISION_MEMORY` | Obsidian + Claude |
-| Attention | `DIY_ATTENTION` | NotebookLM |
-| Write-Back | `DIY_WRITE_BACK` | basic-memory |
-| Governance | `DIY_GOVERNANCE` | No DIY tool — honest "watch this wall" message + soft pointer to how FridayOS approaches it |
-| Economics | `DIY_ECONOMICS` | OpenRouter |
+- **forming** if trajectory was answered with a growth of 8;
+- **fine** otherwise.
 
-All six walls now map to a destination. Governance is intentionally routed to an honest message rather than a tool, because no DIY governance tool currently meets the bar for a public recommendation — controlling and auditing AI access is a platform-class problem. The message points to how FridayOS approaches governance as the category answer (a soft pointer, not a hard sell — this route only fires for respondents who have signaled a hard constraint against integrated solutions, so they are never pushed toward the platform against a stated constraint). Tools were vetted for active maintenance and real community adoption (2026-05).
+No tool is named, no substrate is named, and FridayOS is not mentioned. The page's first move is the free Before AI workshop.
 
-### 3. NOT_READY_YET
+## 1. The four outcome families
 
-```
-compositeWallScore >= 5 AND counterScore >= 7
-```
+Count the structural walls. Call the count `hit`.
 
-The user is hitting real walls, but counter-dimension resistance is too high for an integrated solution right now. They need the walls to get more painful — or their resistance to change needs to decrease — before an integrated platform makes sense.
+| Family | Rule | Leads with |
+|---|---|---|
+| **os** — walls an operating system solves | `hit` is 2 or more; or `hit` is 1 and the team signal is true | A personal FridayOS, framed to the wedge: start alone, invite the team when Identity arrives. Stated as a waitlist until the product is open, with the point-tool set (one approved tool per hit wall) as the honest way to start meanwhile, shown at equal size. |
+| **tool** — one wall, one good tool | `hit` is exactly 1 and the team signal is false | The approved tool for that wall, from the [register](register.md). FridayOS is a quiet door for "when the second wall arrives". |
+| **forming** — walls forming, not hit | `hit` is 0, and `next` exists (at least one wall at 3 or more), and either growth is 6 or more or the team signal is true | Nothing to buy. The moments list leads; one tool named for the next wall. FridayOS mentioned once, as "if two fire together". |
+| **fine** — you are fine, and here is how you will know when you are not | Everything else | Stay put, warmly. The moments list. No FridayOS mention at all. |
 
-### 4. FRIDAYOS_FIT
+The rules are evaluated in this order and the first match wins. An escaped wall is never in `hit`, whatever its score, so a taker who could not place a wall is never routed to an operating system on that wall.
 
-```
-counterScore < 6 AND (wallsHit >= 3 OR compositeWallScore >= 6)
-```
+## 2. The substrate rule and the wedge
 
-Multiple structural walls are hit (or composite pain is high) AND there is no hard counter-dimension blocker. The `counterScore < 6` guard is load-bearing: a respondent with a hard portability, cost, or speed constraint is routed away (to `NOT_READY_YET` or a transition route) even when they're hitting several walls — hitting walls never overrides a stated constraint. This is the pattern an AI operating system addresses.
+A substrate is a tool that sits under the taker's whole AI workflow rather than solving one wall. Two are on the register: gstack (for people who work in a coding agent) and gbrain (for people who run an agent runtime).
 
-### 5. APPROACHING_WALLS
+The rule applies only when the cohort is `cli` (question 2 answered "A coding agent ... with my own files or repo as the system") or, for gbrain, when the taker's setup or escape text describes an agent runtime, which a person reads; the form carries no code for it, so the reference engine names gstack only.
 
-```
-compositeWallScore >= 4 AND growthScore >= 6
-```
+| Family | Cohort `cli` | What the page shows |
+|---|---|---|
+| **tool** | gstack leads as the substrate; the wall's approved tool is named beside it | The genuine single-wall solo builder with no team on the horizon. The honest answer is still gstack. |
+| **os** | A personal FridayOS leads; gstack is named inside the point-tool option as the honest substrate for the solo version | **The wedge.** A coding-agent operator with two or more walls, or with more people in the business than AI users, is routed to a personal FridayOS rather than to a substrate. Version 1 sent this taker to gstack. |
+| **forming**, **fine** | No substrate | Nothing to buy. |
 
-Moderate composite pain with high growth trajectory. The walls aren't fully structural yet, but growth will make them so. Watch list provided.
+The chat, workspace and tools cohorts never receive a substrate (carried from version 1: a substrate assumes a fluency those takers do not have).
 
-### 6. DIY_WITH_AWARENESS (Default)
+## 3. Constraints (deep path question 9)
 
-If no other route matches, the user has moderate walls with no dominant pattern. A DIY approach is viable, but they should be aware of the walls forming.
+Constraints do not create a family. They change what leads inside one, and whether FridayOS appears at all.
 
-## Cohort Modulation (post-step)
+**Stated** (ticked, not marked as a deal-breaker): the recommendation that respects it leads, and FridayOS's answer to it is written out rather than hidden.
 
-After the wall-based route is computed, an optional cohort signal — the taker's primary AI working environment (`q_cohort`) — can re-frame the recommendation. This addresses a class of taker for whom the honest answer to a single wall is not a per-wall tool but a **substrate-class tool** that sits underneath their whole AI workflow.
+| Constraint | What leads |
+|---|---|
+| Portability ("I need to be able to leave with my data") | The tool whose context lives in files the taker owns. FridayOS's answer: "your context lives in files you can take with you". |
+| No technical help ("I do not have anyone technical") | Never a tool that needs someone technical to set up. On the register today that removes Open Brain and Obsidian + Claude from the lead position and leaves the hosted tools. |
+| Cost ("It has to be free or nearly") | The free-or-nearly option. |
+| Speed ("I need it working this week") | The hosted, nothing-to-install option. |
 
-The cohort question is optional. If it is unanswered (or the answer is unrecognized), the wall-based route passes through unchanged.
+**Hard** (marked as a deal-breaker): every FridayOS mention leaves the page, including the ninety-day step and the quiet door. The family's point-tool path is shown alone, at full width, with the sentence "you stated a constraint that rules out an integrated system, and we will not recommend one against it".
 
-Only the **1–2 wall outcomes** are modulatable — the `DIY_*` family and `DIY_WITH_AWARENESS`. When the base route is one of those AND the cohort makes a substrate the honest fit, the substrate becomes the **primary** recommendation and the original wall-specific tool is surfaced as the **alternate** alongside it.
+This is the hard-constraint carve-out ruled in June 2026, carried into version 2 unchanged in substance. Version 1 inferred hardness from a counter score of 7 or more across three questions; version 2 asks.
 
-| Cohort (working environment) | Modulated route | Primary recommendation |
-|------------------------------|-----------------|------------------------|
-| CLI agent (Claude Code, Codex CLI, Gemini CLI, Copilot CLI) | `SUBSTRATE_GSTACK` | gstack — cross-CLI operator overlay |
-| AI-native IDE (Cursor, etc.) | `SUBSTRATE_GSTACK` | gstack — cross-CLI operator overlay |
-| Agent runtime (OpenHands, smolagents, Mastra, Letta, OpenClaw, Hermes) | `SUBSTRATE_AGENT_BRAIN` | Agent-brain layer (memory-os / gbrain) |
-| Chat interfaces (ChatGPT, Claude.ai, Gemini) | *(unchanged)* | wall-based route stands |
-| No specific setup / unsure | *(unchanged)* | wall-based route stands |
+## 4. What the page shows for every family
 
-These routes are **never** modulated, regardless of cohort — the wall-based answer is already the honest one:
+Unchanged by routing: the six-wall picture; one card per wall at 3 or more with the move, the approved tool and the free workshop; the moments list, chosen from the hit walls, then the next wall, then the growth answer; the ninety-day steps; the save block. Every tool named comes from the [Approved Recommendations Register](register.md) and from nowhere else. Governance has no approved tool; its card says so in words.
 
-- `STAY_PUT` — no walls hit; a substrate would be over-prescription.
-- `NOT_READY_YET` — a hard portability/cost/speed constraint is stated; respect the constraint.
-- `FRIDAYOS_FIT` — multiple structural walls (or a scaled team); the integrated platform is the fit.
-- `APPROACHING_WALLS` — a growth-trajectory signal with no wall actively hitting yet.
+## Worked examples
 
-The `chat_interfaces` and `no_setup` cohorts never receive substrate routing: gstack and the agent-brain layers assume a CLI / IDE / runtime fluency that those takers don't have, so recommending one would be dishonest.
+The five example people in [`src/check.ts`](../src/check.ts), by hand:
 
-## Design Principles
+1. **A homegrown-system operator with a team.** 6 to 15 people, a few use AI, works in a coding agent. Identity 7, Decision Memory 8, Attention 4, Governance 4, Economics 3. `hit` = [Decision Memory, Identity]; the team signal is true. Two structural walls → **os**. Cohort is `cli`, so gstack is named inside the point-tool option.
+2. **A solo accountant.** Just them, agents inside their tools. Identity does not apply; Decision Memory 4, Attention 4, Write-Back 8, Governance 4 × 0.6 = 2.4, Economics 5. `hit` = [Write-Back]; no team signal → **tool**: basic-memory leads. `next` is Economics. Portability is a stated constraint, so FridayOS's answer to it is written out.
+3. **The same accountant, portability marked as a deal-breaker.** Still **tool**; every FridayOS mention leaves the page.
+4. **A small team approaching the walls.** 2 to 5 people, most use AI, shared workspace. Identity 5, Decision Memory 4, Attention 4, Write-Back 4, Governance inactive, Economics 1. `hit` is empty, `next` is Identity, trajectory says the team is coming → **forming**.
+5. **A solo operator who is fine.** Every wall answered as a well-run business would; no growth answer. `hit` is empty, `next` is none → **fine**.
 
-1. **Honest routing over conversion.** The algorithm routes away from the commercial product (FridayOS) when the user's situation doesn't warrant it. Roughly 25% of takers are routed to other tools.
+And the wedge: the accountant with 2 to 5 people in the business and only them using AI. Identity is scored as answered; `hit` = [Write-Back]; the team signal is true → **os**.
 
-2. **Equal visual treatment.** Every route receives the same quality of presentation — routing-away destinations are not consolation prizes.
+## Design principles
 
-3. **Counter-dimensions as a check.** High counter scores (portability, speed, cost concerns) pull users toward DIY or stay-put routes even when walls are present. This prevents recommending integrated solutions to users who would resist or abandon them.
+1. **Honest routing over conversion.** The algorithm routes away from the commercial product (FridayOS) when the taker's situation does not warrant it, and names an outside tool for every wall it finds, on every result. The routing distribution is published quarterly from a live read of completed assessments, excluding the publisher's own domains and test rows. No target rate is stated; a target invites tuning toward it.
 
-4. **Growth trajectory matters.** A user with moderate walls but high growth trajectory gets flagged as approaching walls — because growth will intensify the structural problems.
+2. **Equal visual treatment.** Every family receives the same quality of presentation. The two paths on a result are two cards of the same size; routing-away destinations are not consolation prizes.
 
-5. **Solo operator adjustments.** Team-size modifiers (applied during scoring, not routing) ensure solo operators aren't penalized for walls that don't apply to single-person operations.
+3. **Constraints outrank wall count.** A hard portability, speed, cost or capability constraint removes the integrated product from the page even when several walls are structural. Version 2 asks for the constraint rather than inferring it.
 
-6. **Absence is not a wall.** A respondent who hasn't started with AI answers "no system" to the wall questions, which would otherwise read as maximum friction. The not-started pre-check separates "hasn't adopted yet" from "hitting structural limits," so non-adopters are never routed to a platform purchase.
+4. **Growth trajectory matters.** A taker with no structural wall but a wall approaching and a growth signal is told the walls are forming, because growth will make them structural.
 
-7. **Constraints outrank wall count.** A hard portability, cost, or speed constraint (high counter score) routes a respondent away from the integrated product even when multiple walls are present — the honest-routing commitment is enforced at the routing layer, not just in copy.
+5. **Solo operator adjustments.** The solo modifiers (applied during scoring, not routing) mean a solo operator is never routed on a wall about a second person.
 
-8. **Match the recommendation to the substrate.** For a taker hitting a single wall, the honest tool depends on where they already work. Someone living in a CLI agent or AI IDE is better served by a substrate that sits under their whole workflow (gstack) than by a per-wall point tool; someone on an agent runtime is better served by an agent-brain layer (memory-os / gbrain). Cohort modulation only ever fires on 1–2 wall outcomes, and only for environments fluent enough to adopt a substrate — it never overrides STAY_PUT, NOT_READY_YET, FRIDAYOS_FIT, or APPROACHING_WALLS, and it leaves chat-only and no-setup takers on the wall-based route.
+6. **Absence is not a wall.** A taker who has not started with AI is routed on readiness, never toward a platform.
+
+7. **A truthful zero is always available.** Every wall question includes the answer a well-run business would give, and an escape for the answer none of the options describe. An escape is never counted as a hit; the text is read, and it is how the questions evolve.
+
+8. **Match the recommendation to the substrate, but not past the seam between people.** For a solo coding-agent operator with one wall, the honest tool is gstack. Once a second wall or a second person is in the picture, the honest answer is a system, and the substrate is named as the way to start it alone.
+
+9. **Every tool comes from a signed list.** The page names no tool that is not an approved row in the [register](register.md), which records who made it, when a person last checked it live, and who approved it.

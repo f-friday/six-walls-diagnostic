@@ -1,74 +1,67 @@
-// Six Walls scoring engine — takes raw assessment answers and computes wall
-// scores, counter-dimension scores, friction, growth, and composite metrics.
+// Six Walls Diagnostic 2.0.0 — scoring and routing engine.
+//
+// A person can apply methodology/scoring.md and methodology/routing.md by hand
+// and get the same answer this file gives; src/check.ts holds the five example
+// people to that standard.
 //
 // Design notes:
-//   - Wall scores are 0-10. Higher = more painful (bigger wall).
-//   - Identity wall averages Q3 + Q4 (two questions for one wall).
-//   - Solo/team-size modifiers adjust walls that don't apply to solo operators.
-//   - Counter scores are averaged from Q10-Q12. Higher = more resistant to
-//     integrated solutions (portability, speed, cost concerns).
-//   - Options with wall_inactive=true contribute 0 and mark the wall inactive,
-//     but we still compute the score (0) so downstream routing is consistent.
+//   - Wall scores are 0 to 10. Higher means more pain (a bigger wall).
+//   - Each wall is one question. The chosen option's score is the wall score.
+//   - An option with wall_inactive reads 0 and marks the wall inactive.
+//   - An escape ("none of these") reads the midpoint 5, is marked escaped, and
+//     never counts as hit.
+//   - Solo modifiers: Identity does not apply while it is just you; Governance
+//     is multiplied by 0.6; Economics is capped at 2 on free tiers.
+//   - Routing is four outcome families, decided by how many walls are
+//     structural (6 or more) and by the team signal. Constraints never make a
+//     family; they change what leads inside one.
 
-import { getQuestion } from "./questions"
+import { VERSION, getQuestion, optionOf, pickerOption } from "./questions"
+import { WALL_ORDER } from "./types"
 import type {
-  AssessmentAnswers,
+  AiUsers,
+  Answers,
   AssessmentResult,
-  CohortKey,
+  Cohort,
+  ConstraintKey,
+  ConstraintReading,
+  Family,
+  People,
+  Substrate,
   WallKey,
-  WallScores,
-  CounterDimensionScores,
-  Route,
-  ScoredOption,
+  WallReading,
+  WallState,
 } from "./types"
 
-const VALID_COHORTS: readonly CohortKey[] = [
-  "cli_agent",
-  "ai_ide",
-  "agent_runtime",
-  "chat_interfaces",
-  "no_setup",
-] as const
+/** A wall is structural at this score or above. */
+export const STRUCTURAL = 6
+/** An escaped wall reads the midpoint. */
+export const ESCAPE_SCORE = 5
 
-const ALL_WALLS: WallKey[] = [
-  "identity",
-  "decision_memory",
-  "attention",
-  "write_back",
-  "governance",
-  "economics",
-]
+const WALL_QUESTION: Record<WallKey, string> = {
+  identity: "q3_identity",
+  decision_memory: "q4_decision_memory",
+  attention: "q5_attention",
+  write_back: "q6_write_back",
+  governance: "q7_governance",
+  economics: "q8_economics",
+}
+
+const COHORTS: readonly Cohort[] = ["chat", "workspace", "tools", "own_system", "cli", "none"]
+const PEOPLE: readonly People[] = ["one", "two_to_five", "six_to_fifteen", "sixteen_to_fifty", "over_fifty"]
+const AI_USERS: readonly AiUsers[] = ["just_me", "a_few", "most", "everyone"]
+const CONSTRAINTS: readonly ConstraintKey[] = ["portability", "speed", "cost", "capability"]
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Look up the selected option's score for a scored question. Returns 0 if
- *  the question or option is missing. */
-function optionScore(questionId: string, answers: AssessmentAnswers): number {
-  const q = getQuestion(questionId)
-  if (!q) return 0
-  const code = answers[questionId]
-  if (!code) return 0
-  const opts = q.options as ScoredOption[]
-  const match = opts.find((o) => o.code === code)
-  return match?.score ?? 0
+function str(v: string | string[] | undefined): string | undefined {
+  return typeof v === "string" ? v : undefined
 }
 
-/** Check whether the selected option has wall_inactive set. */
-function isWallInactive(questionId: string, answers: AssessmentAnswers): boolean {
-  const q = getQuestion(questionId)
-  if (!q) return false
-  const code = answers[questionId]
-  if (!code) return false
-  const opts = q.options as ScoredOption[]
-  const match = opts.find((o) => o.code === code)
-  return match?.wall_inactive === true
-}
-
-/** Clamp a number into a [min, max] range. */
-function clamp(n: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, n))
+function list(v: string | string[] | undefined): string[] {
+  return Array.isArray(v) ? v : []
 }
 
 /** Round to two decimal places. */
@@ -76,280 +69,174 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-// ---------------------------------------------------------------------------
-// Wall scoring
-// ---------------------------------------------------------------------------
-
-function computeRawWallScores(answers: AssessmentAnswers): WallScores {
-  // Identity: average of Q3 and Q4
-  const q3Score = optionScore("q3_identity_sharing", answers)
-  const q3Inactive = isWallInactive("q3_identity_sharing", answers)
-  const q4Score = optionScore("q4_identity_onboarding", answers)
-  const q4Inactive = isWallInactive("q4_identity_onboarding", answers)
-
-  let identityScore: number
-  if (q3Inactive && q4Inactive) {
-    identityScore = 0
-  } else if (q3Inactive) {
-    identityScore = q4Score
-  } else if (q4Inactive) {
-    identityScore = q3Score
-  } else {
-    identityScore = (q3Score + q4Score) / 2
-  }
-
-  // Single-question walls
-  const decisionMemory = isWallInactive("q5_decision_memory", answers)
-    ? 0
-    : optionScore("q5_decision_memory", answers)
-  const attention = optionScore("q6_attention", answers)
-  const writeBack = optionScore("q7_write_back", answers)
-  const governance = isWallInactive("q8_governance", answers)
-    ? 0
-    : optionScore("q8_governance", answers)
-  const economics = isWallInactive("q9_economics", answers)
-    ? 0
-    : optionScore("q9_economics", answers)
-
-  return {
-    identity: identityScore,
-    decision_memory: decisionMemory,
-    attention,
-    write_back: writeBack,
-    governance,
-    economics,
-  }
-}
-
-/** Apply team-size modifiers from Q1. Solo operators have certain walls
- *  capped or reduced because they don't face multi-user challenges. */
-function applyTeamSizeModifiers(
-  raw: WallScores,
-  answers: AssessmentAnswers,
-): WallScores {
-  const teamCode = answers["q1_team_size"]
-  if (teamCode !== "solo") return raw
-
-  const modified = { ...raw }
-
-  // Solo: cap Identity wall at 3 (multi-user sharing is irrelevant)
-  modified.identity = Math.min(modified.identity, 3)
-
-  // Solo: reduce Governance by 40% (single-user review is less risky)
-  modified.governance = round2(modified.governance * 0.6)
-
-  // Solo: cap Economics at 2 if they chose free-tier
-  const econCode = answers["q9_economics"]
-  if (econCode === "free_tier") {
-    modified.economics = Math.min(modified.economics, 2)
-  }
-
-  return modified
+/** Wall state from a score (scoring.md, "Wall states"). */
+export function stateOf(score: number): WallState {
+  if (score < 3) return "idle"
+  if (score < STRUCTURAL) return "watch"
+  if (score < 8) return "hit"
+  return "breaking"
 }
 
 // ---------------------------------------------------------------------------
-// Counter-dimension scoring
+// Wall scoring (scoring.md, "Wall scores" and "Solo and small-team modifiers")
 // ---------------------------------------------------------------------------
 
-function computeCounterScores(answers: AssessmentAnswers): CounterDimensionScores {
-  return {
-    portability: optionScore("q10_portability", answers),
-    time_to_value: optionScore("q11_time_to_value", answers),
-    cost_sensitivity: optionScore("q12_cost_sensitivity", answers),
+function readWalls(answers: Answers, people: People | null): Record<WallKey, WallReading> {
+  const out = {} as Record<WallKey, WallReading>
+  const solo = people === "one"
+  const freeTier = str(answers["q8_economics"]) === "free_tiers"
+
+  for (const key of WALL_ORDER) {
+    const q = getQuestion(WALL_QUESTION[key])
+    const code = str(answers[WALL_QUESTION[key]])
+    const opt = q ? optionOf(q, code) : undefined
+
+    let score = 0
+    let inactive = false
+    let escaped = false
+
+    if (!opt) {
+      inactive = true // unanswered reads as not applicable, never as pain
+    } else if (opt.escape) {
+      score = ESCAPE_SCORE
+      escaped = true
+    } else if (opt.wall_inactive) {
+      inactive = true
+    } else {
+      score = opt.score ?? 0
+    }
+
+    // Solo modifiers: Identity does not apply while it is just you; Governance
+    // carries less organisational risk; free tiers cap Economics.
+    if (solo && key === "identity") {
+      score = 0
+      inactive = true
+      escaped = false
+    }
+    if (solo && key === "governance" && !inactive && !escaped) score = round2(score * 0.6)
+    if (solo && key === "economics" && freeTier) score = Math.min(score, 2)
+
+    out[key] = { key, score, state: stateOf(score), inactive, escaped }
   }
+  return out
 }
 
 // ---------------------------------------------------------------------------
-// Route computation
+// Constraints (routing.md, "Constraints")
 // ---------------------------------------------------------------------------
 
-interface RouteInput {
-  compositeWallScore: number
-  counterScore: number
-  frictionScore: number
-  growthScore: number
-  nearestWall: WallKey
-  wallsHit: number
-  notStarted: boolean
-}
-
-// Every wall maps to a destination. The four memory walls route to a vetted DIY
-// tool; governance routes to an honest "no DIY tool yet" message (platform-class);
-// economics routes to a hosted cost tool.
-const DIY_WALL_MAP: Record<WallKey, Route> = {
-  identity: "DIY_IDENTITY",
-  decision_memory: "DIY_DECISION_MEMORY",
-  attention: "DIY_ATTENTION",
-  write_back: "DIY_WRITE_BACK",
-  governance: "DIY_GOVERNANCE",
-  economics: "DIY_ECONOMICS",
-}
-
-function computeRoute(input: RouteInput): Route {
-  const { compositeWallScore, counterScore, frictionScore, growthScore, nearestWall, wallsHit, notStarted } = input
-
-  // Route 0: NOT-STARTED — hasn't operationalized AI yet, so "no system" answers score as
-  // maximum wall friction. Absence of a system is not the same as hitting a structural wall;
-  // route on readiness, not on inflated wall scores.
-  if (notStarted) {
-    return growthScore >= 6 ? "APPROACHING_WALLS" : "STAY_PUT"
+function readConstraints(answers: Answers): ConstraintReading[] {
+  const q = getQuestion("q9_constraints")
+  const ticked = list(answers["q9_constraints"])
+  const hard = new Set(list(answers["q9_constraints__hard"]))
+  const out: ConstraintReading[] = []
+  for (const code of ticked) {
+    const opt = q ? optionOf(q, code) : undefined
+    const key = opt?.constraint as ConstraintKey | undefined | null
+    if (!key || !CONSTRAINTS.includes(key)) continue
+    out.push({ key, strength: hard.has(code) ? "hard" : "stated" })
   }
-
-  // Route 1: STAY_PUT — low walls, no growth signal; the current setup is working.
-  if (compositeWallScore <= 4 && wallsHit <= 1 && frictionScore <= 4 && growthScore < 6) {
-    return "STAY_PUT"
-  }
-
-  // Route 2: DIY specific tool — few walls hit, high counter score
-  if (wallsHit <= 2 && counterScore >= 6) {
-    return DIY_WALL_MAP[nearestWall]
-  }
-
-  // Route 3: NOT_READY_YET — high walls but very high counter resistance
-  if (compositeWallScore >= 5 && counterScore >= 7) {
-    return "NOT_READY_YET"
-  }
-
-  // Route 4: FRIDAYOS_FIT — many walls or high composite, AND no hard counter-dimension blocker.
-  // The counterScore < 6 guard keeps the honest commitment: a hard portability/cost/speed
-  // constraint routes a taker away even when they're hitting multiple walls.
-  if (counterScore < 6 && (wallsHit >= 3 || compositeWallScore >= 6)) {
-    return "FRIDAYOS_FIT"
-  }
-
-  // Route 5: APPROACHING_WALLS — moderate composite with high growth trajectory
-  if (compositeWallScore >= 4 && growthScore >= 6) {
-    return "APPROACHING_WALLS"
-  }
-
-  // Default
-  return "DIY_WITH_AWARENESS"
-}
-
-// ---------------------------------------------------------------------------
-// Cohort modulation
-// ---------------------------------------------------------------------------
-
-// Wall-routing is primary; cohort modulates only the 1–2 wall outcomes (the DIY_*
-// family and DIY_WITH_AWARENESS) by elevating a substrate-class tool to the primary
-// recommendation when the taker's working environment makes one the honest fit.
-//
-// Unchanged regardless of cohort:
-//   STAY_PUT          — no walls hit; substrate would be over-prescription
-//   NOT_READY_YET     — hard portability/cost/speed constraint; respect the constraint
-//   FRIDAYOS_FIT      — multi-wall or scaled-team signal; FridayOS wins
-//   APPROACHING_WALLS — growth-trajectory signal but no walls actively hitting yet
-//
-// chat_interfaces / no_setup cohorts never receive substrate routing — gstack and
-// the agent-brain layers assume CLI/IDE/runtime fluency that those takers don't have.
-const SUBSTRATE_MODULATABLE: ReadonlySet<Route> = new Set<Route>([
-  "DIY_IDENTITY",
-  "DIY_DECISION_MEMORY",
-  "DIY_ATTENTION",
-  "DIY_WRITE_BACK",
-  "DIY_GOVERNANCE",
-  "DIY_ECONOMICS",
-  "DIY_WITH_AWARENESS",
-])
-
-function modulateRouteByCohort(base: Route, cohort: CohortKey | undefined): Route {
-  if (!cohort) return base
-  if (!SUBSTRATE_MODULATABLE.has(base)) return base
-  switch (cohort) {
-    case "cli_agent":
-    case "ai_ide":
-      return "SUBSTRATE_GSTACK"
-    case "agent_runtime":
-      return "SUBSTRATE_AGENT_BRAIN"
-    case "chat_interfaces":
-    case "no_setup":
-      return base
-  }
+  return out
 }
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export function scoreAssessment(answers: AssessmentAnswers): AssessmentResult {
-  // 1. Wall scores
-  const rawWalls = computeRawWallScores(answers)
-  const wallScores = applyTeamSizeModifiers(rawWalls, answers)
+export function scoreAssessment(answers: Answers): AssessmentResult {
+  // 1. Profile: people, AI users, cohort, not-started.
+  const q1 = getQuestion("q1_scale")
+  const peopleCode = str(answers["q1_people"])
+  const aiCode = str(answers["q1_ai_users"])
+  const people =
+    q1 && pickerOption(q1, "people", peopleCode) && PEOPLE.includes(peopleCode as People)
+      ? (peopleCode as People)
+      : null
+  const aiUsers =
+    q1 && pickerOption(q1, "ai_users", aiCode) && AI_USERS.includes(aiCode as AiUsers)
+      ? (aiCode as AiUsers)
+      : null
 
-  // Clamp all wall scores to 0-10
-  for (const key of ALL_WALLS) {
-    wallScores[key] = clamp(round2(wallScores[key]), 0, 10)
+  const q2 = getQuestion("q2_setup")
+  const setupOpt = q2 ? optionOf(q2, str(answers["q2_setup"])) : undefined
+  const cohortRaw = setupOpt?.cohort as Cohort | undefined
+  const cohort: Cohort = cohortRaw && COHORTS.includes(cohortRaw) ? cohortRaw : "unknown"
+  const notStarted = setupOpt?.not_started === true
+
+  // 2. Trajectory (deep path, optional).
+  const q10 = getQuestion("q10_trajectory")
+  const trajectory = q10 ? optionOf(q10, str(answers["q10_trajectory"])) : undefined
+  const growth = trajectory?.growth ?? null
+
+  // 3. Wall scores.
+  const walls = readWalls(answers, people)
+  const byScore = (a: WallKey, b: WallKey) => walls[b].score - walls[a].score
+  const structural = (w: WallReading) => w.score >= STRUCTURAL && !w.inactive && !w.escaped
+
+  const hit = WALL_ORDER.filter((k) => structural(walls[k])).sort(byScore)
+  const nextCandidates = WALL_ORDER.filter(
+    (k) => !structural(walls[k]) && !walls[k].inactive && !walls[k].escaped && walls[k].score >= 3,
+  ).sort(byScore)
+  const next = nextCandidates[0] ?? null
+
+  // 4. The team signal: more people in the business than AI users, or the
+  //    trajectory answer says the team is coming.
+  const teamSignal =
+    (people !== null && people !== "one" && aiUsers !== null && aiUsers !== "everyone") ||
+    trajectory?.team_signal === true
+
+  // 5. Family (routing.md, "The not-started pre-check" and "The four outcome families").
+  let family: Family
+  if (notStarted) {
+    family = growth !== null && growth >= 8 ? "forming" : "fine"
+  } else if (hit.length >= 2 || (hit.length === 1 && teamSignal)) {
+    family = "os"
+  } else if (hit.length === 1) {
+    family = "tool"
+  } else if (next !== null && ((growth !== null && growth >= 6) || teamSignal)) {
+    family = "forming"
+  } else {
+    family = "fine"
   }
 
-  // 2. Counter-dimension scores
-  const counterScores = computeCounterScores(answers)
-  const counterScore = round2(
-    (counterScores.portability +
-      counterScores.time_to_value +
-      counterScores.cost_sensitivity) / 3,
-  )
+  // 6. Constraints: stated or hard. Hard removes every FridayOS mention.
+  const constraints = readConstraints(answers)
+  const hardConstraint = constraints.some((c) => c.strength === "hard")
 
-  // 3. Friction & growth (single-question scores)
-  const frictionScore = optionScore("q13_friction", answers)
-  const growthScore = optionScore("q14_growth", answers)
-
-  // 4. Composite wall score (equal-weighted average, v1)
-  const compositeWallScore = round2(
-    ALL_WALLS.reduce((sum, w) => sum + wallScores[w], 0) / ALL_WALLS.length,
-  )
-
-  // 5. Nearest wall (highest score) — ties go to the lower-numbered wall
-  let nearestWall: WallKey = ALL_WALLS[0]
-  let highestScore = wallScores[ALL_WALLS[0]]
-  for (const w of ALL_WALLS) {
-    if (wallScores[w] > highestScore) {
-      highestScore = wallScores[w]
-      nearestWall = w
-    }
-  }
-
-  // 6. Walls hit: count of walls with score >= 6
-  const wallsHit = ALL_WALLS.filter((w) => wallScores[w] >= 6).length
-
-  // 6b. Not-started signal: hasn't operationalized AI for business yet.
-  const notStarted =
-    answers["q2_current_setup"] === "no_ai" || answers["q13_friction"] === "not_started"
-
-  // 7. Route (wall-based)
-  const baseRoute = computeRoute({
-    compositeWallScore,
-    counterScore,
-    frictionScore,
-    growthScore,
-    nearestWall,
-    wallsHit,
-    notStarted,
-  })
-
-  // 8. Cohort modulation. Narrow the raw cohort answer to CohortKey so downstream
-  // code gets a typed value. The cohort question is optional in the UI; an absent or
-  // unrecognized answer leaves `cohort` undefined and `modulateRouteByCohort()` passes
-  // the base route through unchanged.
-  const rawCohort = answers["q_cohort"] as string | undefined
-  const cohort = rawCohort && (VALID_COHORTS as readonly string[]).includes(rawCohort)
-    ? (rawCohort as CohortKey)
-    : undefined
-
-  const route = modulateRouteByCohort(baseRoute, cohort)
+  // 7. The substrate rule: gstack is named for the coding-agent cohort in the
+  //    tool and os families. gbrain is named only when a person reads an
+  //    agent-runtime signal in the setup or escape text, which the form does
+  //    not carry as a code, so the engine never sets it.
+  const substrate: Substrate | null =
+    cohort === "cli" && !notStarted && (family === "tool" || family === "os") ? "gstack" : null
 
   return {
-    wallScores,
-    counterScores,
-    counterScore,
-    compositeWallScore,
-    frictionScore,
-    growthScore,
-    route,
-    nearestWall,
-    wallsHit,
+    version: VERSION,
+    walls,
+    hit,
+    next,
+    family,
     cohort,
+    people,
+    aiUsers,
+    teamSignal,
+    notStarted,
+    growth,
+    constraints,
+    hardConstraint,
+    substrate,
   }
 }
 
-/** Alias for scoreAssessment — matches the import name used by the UI layer. */
+/** The wall whose move leads the ninety-day plan: top hit, else next, else the highest. */
+export function topWall(result: AssessmentResult): WallKey | null {
+  if (result.hit[0]) return result.hit[0]
+  if (result.next) return result.next
+  const ranked = WALL_ORDER.filter((k) => !result.walls[k].inactive).sort(
+    (a, b) => result.walls[b].score - result.walls[a].score,
+  )
+  return ranked[0] ?? null
+}
+
+/** Alias kept from 1.x for callers that import this name. */
 export const computeScores = scoreAssessment

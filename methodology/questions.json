@@ -1,302 +1,541 @@
 {
-  "version": "1.1",
+  "version": "2.0.0",
   "metadata": {
     "title": "The Six Walls Diagnostic",
-    "estimated_minutes": 10,
-    "question_count": 15,
+    "estimated_minutes": 3,
+    "question_count": 8,
+    "deep_path_question_count": 10,
     "license": "CC BY 4.0",
-    "author": "Framework Friday"
+    "author": "Centrifuse",
+    "publisher": "Centrifuse",
+    "notes": [
+      "Every option set carries the answer a well-run business would give, so a taker can score zero on a wall truthfully.",
+      "Every wall question ends with an escape: 'None of these' plus one line of free text. An escaped wall is scored at the midpoint and marked unscored; it is never counted as hit, and the text is read by a person.",
+      "No question mentions FridayOS, platforms, or spend comfort. Constraints are one optional question on the results page.",
+      "Scores run 0 to 10; higher is more pain. A wall is structural at 6 or more.",
+      "The email is asked first, before question 1, on every path: the fuller roadmap has somewhere to go, and a taker who stops partway can be picked up from the last answered question. Consent for further notes is a separate box, unticked, labelled Centrifuse. The results page confirms the address instead of asking again."
+    ],
+    "supersedes": "1.3.0 (this repository) and the unpublished 1.2 wording of 2026-06-11"
+  },
+  "gate": {
+    "position": "before q1, every path",
+    "fields": [
+      {
+        "id": "email",
+        "label": "Your email",
+        "required": true,
+        "autocomplete": "email"
+      },
+      {
+        "id": "first_name",
+        "label": "First name",
+        "required": false
+      }
+    ],
+    "copy": "Your walls will show on screen either way. Your email is where the fuller roadmap goes, and it lets us pick up where you left off if you stop partway.",
+    "consent": {
+      "id": "consent_notes",
+      "default": false,
+      "label": "Also send me the occasional note from Centrifuse about the six walls. Off unless you tick it. Your roadmap arrives either way."
+    },
+    "on_abandon": "the email and the answers so far are stored; a follow-up picks up from the last answered question"
   },
   "sections": [
     {
       "id": "profile",
-      "title": "About Your Setup",
+      "title": "Your business",
       "questions": [
         {
-          "id": "q1_team_size",
-          "text": "How many people regularly use AI tools in your day-to-day work?",
-          "type": "single_select",
-          "wall": null,
-          "purpose": "segmentation",
-          "options": [
-            { "code": "solo", "label": "Just me", "value": 1 },
-            { "code": "small_team", "label": "2–3 people", "value": 2 },
-            { "code": "mid_team", "label": "4–10 people", "value": 3 },
-            { "code": "org", "label": "11–50 people", "value": 4 },
-            { "code": "enterprise", "label": "50+", "value": 5 }
+          "id": "q1_scale",
+          "text": "How many people work in the business, and how many of them work with AI in a normal week?",
+          "type": "two_pickers",
+          "pickers": [
+            {
+              "id": "people",
+              "label": "People in the business, counting you",
+              "options": [
+                {
+                  "code": "one",
+                  "label": "Just me"
+                },
+                {
+                  "code": "two_to_five",
+                  "label": "2 to 5"
+                },
+                {
+                  "code": "six_to_fifteen",
+                  "label": "6 to 15"
+                },
+                {
+                  "code": "sixteen_to_fifty",
+                  "label": "16 to 50"
+                },
+                {
+                  "code": "over_fifty",
+                  "label": "More than 50"
+                }
+              ]
+            },
+            {
+              "id": "ai_users",
+              "label": "Of those, how many use AI every week",
+              "options": [
+                {
+                  "code": "just_me",
+                  "label": "Just me"
+                },
+                {
+                  "code": "a_few",
+                  "label": "A few of us"
+                },
+                {
+                  "code": "most",
+                  "label": "Most of us"
+                },
+                {
+                  "code": "everyone",
+                  "label": "Everyone"
+                }
+              ]
+            }
+          ],
+          "feeds": [
+            "solo modifiers",
+            "team signal for the wedge rule",
+            "benchmark cohort"
           ]
         },
         {
-          "id": "q2_current_setup",
-          "text": "What’s your primary AI setup today?",
+          "id": "q2_setup",
+          "text": "Which of these is closest to how AI actually works in your business right now?",
+          "lead_in": "Not the setup you keep meaning to build. Today.",
           "type": "single_select",
-          "wall": null,
-          "purpose": "baseline",
           "options": [
-            { "code": "vanilla_ai", "label": "Personal AI assistant (ChatGPT, Claude, Gemini) with no structured knowledge base", "value": 1 },
-            { "code": "ai_plus_kb", "label": "AI + personal knowledge base (Obsidian, Notion, Apple Notes, etc.)", "value": 2 },
-            { "code": "diy_memory", "label": "DIY AI-memory system (Open Brain, NotebookLM, Obsidian, Claude Projects, etc.)", "value": 3 },
-            { "code": "multi_tool", "label": "Multiple AI tools stitched together across workflows", "value": 4 },
-            { "code": "no_ai", "label": "Not using AI for business operations yet", "value": 0 }
-          ]
-        },
-        {
-          "id": "q_cohort",
-          "text": "Where do you work with AI day-to-day — what’s your environment? (Optional — for routing your recommendation more precisely.)",
-          "type": "single_select",
-          "wall": null,
-          "purpose": "cohort",
-          "options": [
-            { "code": "cli_agent", "label": "I work in a CLI agent like Claude Code, Codex CLI, Gemini CLI, or GitHub Copilot CLI", "value": 1 },
-            { "code": "ai_ide", "label": "I work in an AI-native IDE like Cursor (which also has a CLI now)", "value": 2 },
-            { "code": "agent_runtime", "label": "I’ve built on (or use a personal build of) an agent runtime like OpenHands, smolagents, Mastra, Letta, OpenClaw, or Hermes", "value": 3 },
-            { "code": "chat_interfaces", "label": "I mostly use chat interfaces (ChatGPT, Claude.ai, Gemini)", "value": 4 },
-            { "code": "no_setup", "label": "I have no specific setup / I’m not sure what these are", "value": 5 }
+            {
+              "code": "chat",
+              "label": "Chat assistants for drafting and thinking, nothing organised around them",
+              "cohort": "chat"
+            },
+            {
+              "code": "workspace",
+              "label": "A shared team workspace with projects (Claude Team, ChatGPT Team, Gemini for Workspace or similar)",
+              "cohort": "workspace"
+            },
+            {
+              "code": "agents_in_tools",
+              "label": "Agents or automations running inside my tools: CRM, email, calendar, bookkeeping",
+              "cohort": "tools"
+            },
+            {
+              "code": "own_system",
+              "label": "My own system: files or a knowledge base plus tools or agents that read and write it, built by me or for me",
+              "cohort": "own_system"
+            },
+            {
+              "code": "coding_agent",
+              "label": "A coding agent (Claude Code, Codex, Cursor or similar) with my own files or repo as the system",
+              "cohort": "cli"
+            },
+            {
+              "code": "not_yet",
+              "label": "We are not really using AI in the business yet",
+              "cohort": "none",
+              "not_started": true
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is how it actually works:",
+              "escape": true,
+              "text_field": true
+            }
+          ],
+          "feeds": [
+            "cohort for substrate rules",
+            "not-started pre-check",
+            "which tool descriptions the page leads with"
           ]
         }
       ]
     },
     {
       "id": "walls",
-      "title": "Your Six Walls",
+      "title": "The six walls",
       "questions": [
         {
-          "id": "q3_identity_sharing",
-          "text": "When someone else needs context from your AI work — a team member, contractor, or partner — how does that happen today?",
+          "id": "q3_identity",
           "wall": "identity",
           "wall_number": 1,
+          "text": "What happens?",
+          "scenario": "Two people in your business need the same context from AI: what the business knows, decided and is working on.",
           "type": "single_select",
           "options": [
-            { "code": "ask_me", "label": "They ask me directly — I’m the only one who uses AI", "score": 2 },
-            { "code": "manual_share", "label": "I copy-paste or screenshot the relevant parts", "score": 3 },
-            { "code": "shared_account", "label": "We share an account or workspace (everyone sees everything)", "score": 5 },
-            { "code": "separate_sync", "label": "We have separate setups but manually sync a shared knowledge base", "score": 6 },
-            { "code": "solo_na", "label": "N/A — I work solo and don’t share AI context with anyone", "score": 0, "wall_inactive": true }
+            {
+              "code": "only_one_uses",
+              "label": "Only one of us really uses it, so it does not come up",
+              "score": 2
+            },
+            {
+              "code": "each_own_ai",
+              "label": "We each have our own AI and nothing connects them",
+              "score": 7
+            },
+            {
+              "code": "shared_workspace_scratch",
+              "label": "We share a workspace, but each conversation starts from scratch",
+              "score": 5
+            },
+            {
+              "code": "give_access_own_login",
+              "label": "I give them access to the system, with their own login and role",
+              "score": 2
+            },
+            {
+              "code": "shared_source_of_truth",
+              "label": "There is one shared source of truth that every person's AI reads from",
+              "score": 0
+            },
+            {
+              "code": "alone_by_plan",
+              "label": "I work alone and that is the plan",
+              "score": 0,
+              "wall_inactive": true
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is what actually happens:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         },
         {
-          "id": "q4_identity_onboarding",
-          "text": "If you brought someone new into your work tomorrow — a hire, a contractor, a co-founder — how long before they could make AI-informed decisions using your existing business context?",
-          "wall": "identity",
-          "wall_number": 1,
-          "type": "single_select",
-          "options": [
-            { "code": "days_weeks", "label": "Days to weeks — they’d need to rebuild context from scratch", "score": 8 },
-            { "code": "hours_manual", "label": "A few hours — I’d walk them through my setup manually", "score": 5 },
-            { "code": "quick_access", "label": "Under an hour — they’d access shared context with their own role", "score": 2 },
-            { "code": "solo_na", "label": "N/A — I work solo with no plans to bring anyone in", "score": 0, "wall_inactive": true }
-          ]
-        },
-        {
-          "id": "q5_decision_memory",
-          "text": "Think about a significant business decision you made 3–6 months ago — a pricing change, a vendor switch, a strategic pivot. Without asking anyone else, what can your system tell you?",
+          "id": "q4_decision_memory",
           "wall": "decision_memory",
           "wall_number": 2,
+          "text": "Without asking anyone, what can you pull up about it today?",
+          "scenario": "Pick a real decision from about six months ago: a price change, a vendor switch, a hire.",
           "type": "single_select",
           "options": [
-            { "code": "no_record", "label": "I can’t find it — the decision lives in my head or scattered across tools", "score": 9 },
-            { "code": "what_only", "label": "I can find what was decided, but not why or what alternatives were considered", "score": 7 },
-            { "code": "what_and_why", "label": "I can find what was decided and why — but not whether it worked", "score": 4 },
-            { "code": "full_trace", "label": "The full picture: what, why, alternatives considered, outcome, and lessons learned", "score": 1 },
-            { "code": "too_new", "label": "N/A — I haven’t been operating long enough for this to apply", "score": 0, "wall_inactive": true }
+            {
+              "code": "in_my_head",
+              "label": "Nothing. It is in my head",
+              "score": 8
+            },
+            {
+              "code": "what_not_why",
+              "label": "What we decided, but not why",
+              "score": 6
+            },
+            {
+              "code": "the_chat",
+              "label": "The chat where we decided it, if I can find the chat",
+              "score": 5
+            },
+            {
+              "code": "what_and_why",
+              "label": "What and why, but not whether it worked",
+              "score": 4
+            },
+            {
+              "code": "full_trail",
+              "label": "The full trail: what, why, the options we rejected, and how it turned out",
+              "score": 0
+            },
+            {
+              "code": "too_new",
+              "label": "The business is too new for this to apply",
+              "score": 0,
+              "wall_inactive": true
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is what I can pull up:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         },
         {
-          "id": "q6_attention",
-          "text": "If you stopped checking your dashboards, inboxes, and AI tools for two full weeks, what would happen to your business?",
+          "id": "q5_attention",
           "wall": "attention",
           "wall_number": 3,
+          "text": "What would your business do without you?",
+          "scenario": "You stop looking at everything, every dashboard, inbox and tool, for two weeks.",
           "type": "single_select",
           "options": [
-            { "code": "nothing_catches", "label": "Things would fall through — nothing catches and escalates on its own", "score": 9 },
-            { "code": "noisy_alerts", "label": "I have some automated alerts, but they’re noisy — real issues would get buried", "score": 7 },
-            { "code": "partial_coverage", "label": "Critical items would be caught, but smaller things would slip", "score": 4 },
-            { "code": "reliable_system", "label": "My system reliably catches and escalates what matters, with high signal-to-noise", "score": 1 },
-            { "code": "manual_tracking", "label": "I don’t use dashboards — I track everything manually or in my head", "score": 8 }
+            {
+              "code": "fall_through",
+              "label": "Things would fall through, silently",
+              "score": 8
+            },
+            {
+              "code": "in_my_head",
+              "label": "I hold it all in my head, so a lot would stall",
+              "score": 7
+            },
+            {
+              "code": "noisy_alerts",
+              "label": "Alerts exist, but they are noisy, so real issues get buried",
+              "score": 6
+            },
+            {
+              "code": "big_caught_small_slip",
+              "label": "Agents or people would catch the big things; smaller things would slip",
+              "score": 4
+            },
+            {
+              "code": "caught_and_escalated",
+              "label": "What matters gets caught and escalated to the right person, reliably",
+              "score": 1
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is what would happen:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         },
         {
-          "id": "q7_write_back",
-          "text": "After your busiest week of the month, how much of what actually happened is captured in your system — without anyone stopping to document it?",
+          "id": "q6_write_back",
           "wall": "write_back",
           "wall_number": 4,
+          "text": "How much of what actually happened is in the system without anyone stopping to write it down?",
+          "scenario": "Think about your busiest week this quarter.",
           "type": "single_select",
           "options": [
-            { "code": "nothing_captured", "label": "Almost nothing — if nobody logs it, the system doesn’t know", "score": 9 },
-            { "code": "partial_auto", "label": "Some things automatically (email threads, calendar, transcripts) — but not decisions or context", "score": 6 },
-            { "code": "mostly_captured", "label": "Most operational activity is captured, but there are gaps in the important stuff", "score": 4 },
-            { "code": "fully_captured", "label": "Nearly everything — decisions, context, follow-ups captured during normal work", "score": 1 },
-            { "code": "no_system", "label": "I don’t think about capture — I just work and hope to remember what matters", "score": 8 }
+            {
+              "code": "almost_nothing",
+              "label": "Almost nothing",
+              "score": 8
+            },
+            {
+              "code": "automatic_only",
+              "label": "The automatic parts (email, calendar, transcripts) but not the decisions",
+              "score": 5
+            },
+            {
+              "code": "most_with_gaps",
+              "label": "Most of the activity, with gaps in the things that mattered",
+              "score": 4
+            },
+            {
+              "code": "captured_during_work",
+              "label": "Nearly everything, captured during the work rather than after it",
+              "score": 1
+            },
+            {
+              "code": "do_not_think_about_it",
+              "label": "I do not think about capture at all",
+              "score": 5
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is how it works:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         },
         {
-          "id": "q8_governance",
-          "text": "When your AI recommends a course of action — a strategy, a hire, a vendor choice — what challenges that recommendation before you act on it?",
+          "id": "q7_governance",
           "wall": "governance",
           "wall_number": 5,
+          "text": "What can your AI or your agents do without a person seeing it first, and who can see what?",
           "type": "single_select",
           "options": [
-            { "code": "self_review", "label": "Nothing — I review the output myself and decide", "score": 7 },
-            { "code": "same_ai_review", "label": "I ask the same AI to ‘find weaknesses’ in its own recommendation", "score": 6 },
-            { "code": "manual_second", "label": "I manually get a second opinion from a different AI tool or a person", "score": 4 },
-            { "code": "structural_review", "label": "A separate agent or process automatically reviews AI output before I see it", "score": 1 },
-            { "code": "info_only", "label": "I don’t use AI for recommendations — just information retrieval", "score": 2, "wall_inactive": true }
+            {
+              "code": "i_read_everything",
+              "label": "Nothing runs unreviewed. I read everything myself",
+              "score": 4
+            },
+            {
+              "code": "unreviewed_sometimes",
+              "label": "Drafts go out or records change unreviewed, sometimes",
+              "score": 7
+            },
+            {
+              "code": "agents_act_find_out_after",
+              "label": "Agents act on their own and I find out afterwards",
+              "score": 8
+            },
+            {
+              "code": "second_check",
+              "label": "A second agent or a person checks anything that leaves the building or changes a record, and I can see who can see what",
+              "score": 1
+            },
+            {
+              "code": "lookup_only",
+              "label": "I only use AI to look things up; it does not act",
+              "score": 0,
+              "wall_inactive": true
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is how it works:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         },
         {
-          "id": "q9_economics",
-          "text": "How do you track what your business spends on AI tools and whether that spending is worth it?",
+          "id": "q8_economics",
           "wall": "economics",
           "wall_number": 6,
+          "text": "What does AI cost your business each month, in money and in your own hours keeping it running?",
           "type": "single_select",
           "options": [
-            { "code": "not_tracking", "label": "I don’t track it — it’s negligible or bundled into subscriptions", "score": 3, "wall_inactive": true },
-            { "code": "total_only", "label": "I see the total bill but can’t connect it to specific workflows or outcomes", "score": 7 },
-            { "code": "rough_estimates", "label": "I have rough estimates per team or project, but no precise attribution", "score": 5 },
-            { "code": "full_attribution", "label": "I can produce per-workflow cost-to-outcome attribution for most of my AI spend", "score": 1 },
-            { "code": "free_tier", "label": "I only use free tiers — cost isn’t a factor yet", "score": 0, "wall_inactive": true }
+            {
+              "code": "inside_subscriptions",
+              "label": "I do not know. It is inside subscriptions",
+              "score": 6
+            },
+            {
+              "code": "bill_not_value",
+              "label": "I know the bill, not what it buys",
+              "score": 5
+            },
+            {
+              "code": "roughly_per_tool",
+              "label": "Roughly, per tool or per person",
+              "score": 3
+            },
+            {
+              "code": "spend_to_outcomes",
+              "label": "I can tie spend and hours to outcomes, per workflow",
+              "score": 0
+            },
+            {
+              "code": "free_tiers",
+              "label": "Free tiers only, and my time",
+              "score": 1,
+              "free_tier": true
+            },
+            {
+              "code": "none_of_these",
+              "label": "None of these. Here is the picture:",
+              "escape": true,
+              "text_field": true
+            }
           ]
         }
       ]
     },
     {
-      "id": "counter_dimensions",
-      "title": "What Matters to You",
+      "id": "deep_path",
+      "title": "Two more, if you want a sharper roadmap",
+      "offered": "on the results page, after the first result renders; both optional; answers re-render the path without leaving the page",
       "questions": [
         {
-          "id": "q10_portability",
-          "text": "How important is it that you could switch AI providers or tools without losing your setup?",
-          "type": "single_select",
-          "counter_dimension": "portability",
+          "id": "q9_constraints",
+          "text": "If a system solved the walls above, what would stop you adopting it?",
+          "type": "multi_select_with_dealbreaker",
           "options": [
-            { "code": "critical", "label": "Critical — I won’t commit to any single platform", "score": 9 },
-            { "code": "important", "label": "Important — I prefer portability but would accept some lock-in for enough value", "score": 6 },
-            { "code": "nice_to_have", "label": "Nice-to-have — if the system works, I’ll stay", "score": 3 },
-            { "code": "not_important", "label": "Not important — I’d rather have a great integrated system", "score": 1 }
-          ]
+            {
+              "code": "leave_with_data",
+              "label": "I need to be able to leave with my data",
+              "constraint": "portability"
+            },
+            {
+              "code": "working_this_week",
+              "label": "I need it working this week",
+              "constraint": "speed"
+            },
+            {
+              "code": "free_or_nearly",
+              "label": "It has to be free or nearly",
+              "constraint": "cost"
+            },
+            {
+              "code": "nobody_technical",
+              "label": "I do not have anyone technical",
+              "constraint": "capability"
+            },
+            {
+              "code": "nothing_if_it_works",
+              "label": "Nothing, if it works",
+              "constraint": null,
+              "exclusive": true
+            }
+          ],
+          "dealbreaker": {
+            "prompt": "Mark any of these that would stop you outright.",
+            "effect": "A marked constraint is hard: the page names the point tools and does not mention FridayOS at all. An unmarked constraint is stated: it changes which recommendation leads and how FridayOS's answer to it is worded."
+          }
         },
         {
-          "id": "q11_time_to_value",
-          "text": "How quickly do you need to be operational with your AI system?",
+          "id": "q10_trajectory",
+          "text": "In the next year, what changes about how your business uses AI?",
           "type": "single_select",
-          "counter_dimension": "time_to_value",
           "options": [
-            { "code": "today", "label": "Today — I can’t wait weeks for configuration", "score": 9 },
-            { "code": "within_week", "label": "Within a week — I need fast time-to-value", "score": 6 },
-            { "code": "few_weeks", "label": "A few weeks is fine if the system is significantly better", "score": 3 },
-            { "code": "invest_months", "label": "I’ll invest months in setup for something that truly transforms my operations", "score": 1 }
-          ]
-        },
-        {
-          "id": "q12_cost_sensitivity",
-          "text": "What’s your comfort level with AI spending for business operations?",
-          "type": "single_select",
-          "counter_dimension": "cost_sensitivity",
-          "options": [
-            { "code": "free_only", "label": "Free or near-free only — I’m not ready to invest in AI tooling", "score": 9 },
-            { "code": "under_50", "label": "Under $50/month — I’ll pay for clear value but keep it lean", "score": 6 },
-            { "code": "investing", "label": "$50–500/month — I’m investing in AI as a real operational tool", "score": 3 },
-            { "code": "core_investment", "label": "$500+/month — AI is a core business expense and I budget for it", "score": 1 }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "synthesis",
-      "title": "Looking Ahead",
-      "questions": [
-        {
-          "id": "q13_friction",
-          "text": "How often do you hit limits with your current AI setup that make you think ‘there must be a better way’?",
-          "type": "single_select",
-          "purpose": "friction",
-          "options": [
-            { "code": "rarely", "label": "Rarely or never — my setup works well for what I need", "score": 1 },
-            { "code": "monthly", "label": "Occasionally — maybe once a month", "score": 4 },
-            { "code": "weekly", "label": "Regularly — it’s a weekly frustration", "score": 7 },
-            { "code": "daily", "label": "Constantly — it’s a daily pain point", "score": 9 },
-            { "code": "not_started", "label": "I don’t use AI for operations yet — so I haven’t hit limits", "score": 2 }
-          ]
-        },
-        {
-          "id": "q14_growth",
-          "text": "In the next 12 months, what’s most likely to change about how your business uses AI?",
-          "type": "single_select",
-          "purpose": "growth_trajectory",
-          "options": [
-            { "code": "stable", "label": "Not much — I’m happy with my current approach", "score": 1 },
-            { "code": "incremental", "label": "I’ll add a few more AI tools to my personal stack", "score": 3 },
-            { "code": "team_expansion", "label": "I’ll need to bring team members into my AI workflows", "score": 7 },
-            { "code": "complexity_growth", "label": "I’ll need AI handling more complex, multi-step business processes", "score": 8 },
-            { "code": "exploring", "label": "I’m not sure yet — still exploring where AI fits", "score": 2 }
+            {
+              "code": "not_much",
+              "label": "Honestly, not much. I am in a good spot",
+              "growth": 1
+            },
+            {
+              "code": "more_tools",
+              "label": "A few more tools added to my setup",
+              "growth": 3
+            },
+            {
+              "code": "team_inside",
+              "label": "My team working inside it alongside me",
+              "growth": 8,
+              "team_signal": true
+            },
+            {
+              "code": "multi_step",
+              "label": "Running whole multi-step processes, not just one-off tasks",
+              "growth": 8
+            },
+            {
+              "code": "not_sure",
+              "label": "Not sure yet. Still figuring out where AI fits",
+              "growth": 4
+            }
           ]
         }
       ]
     }
   ],
   "walls": {
-    "identity": { "number": 1, "title": "The Identity Wall", "essay_title": "\"My AI remembers me\" vs. \"Our business remembers everything.\"" },
-    "decision_memory": { "number": 2, "title": "The Decision Memory Wall", "essay_title": "\"I have records\" vs. \"I have institutional memory.\"" },
-    "attention": { "number": 3, "title": "The Attention Wall", "essay_title": "\"I built a dashboard\" vs. \"Nothing falls through the cracks.\"" },
-    "write_back": { "number": 4, "title": "The Write-Back Wall", "essay_title": "\"I log things\" vs. \"The system captures what happened.\"" },
-    "governance": { "number": 5, "title": "The Governance Wall", "essay_title": "\"One agent does everything\" vs. \"Checks and balances.\"" },
-    "economics": { "number": 6, "title": "The Economics Wall", "essay_title": "\"I pay the AI bill\" vs. \"The business manages its AI economics.\"" }
-  },
-  "routing_destinations": {
-    "fridayos_fit": {
-      "label": "Friday OS",
-      "description": "You're hitting structural walls that an integrated AI operating system addresses.",
-      "cta_primary": "Join the Friday OS beta waitlist",
-      "cta_secondary": "Book a Readiness Workshop"
+    "identity": {
+      "number": 1,
+      "title": "The Identity Wall",
+      "essay_title": "\"My AI remembers me\" vs. \"Our business remembers everything.\""
     },
-    "diy_identity": {
-      "label": "Open Brain",
-      "description": "An open-source shared-memory layer so Claude, ChatGPT, and other tools all work from one picture of you and your business.",
-      "url": "https://github.com/NateBJones-Projects/OB1"
+    "decision_memory": {
+      "number": 2,
+      "title": "The Decision Memory Wall",
+      "essay_title": "\"I have records\" vs. \"I have institutional memory.\""
     },
-    "diy_attention": {
-      "label": "NotebookLM",
-      "description": "Google's free, hosted tool for chatting with your own documents — answers grounded only in the sources you give it. Nothing to install.",
-      "url": "https://notebooklm.google"
+    "attention": {
+      "number": 3,
+      "title": "The Attention Wall",
+      "essay_title": "\"I built a dashboard\" vs. \"Nothing falls through the cracks.\""
     },
-    "diy_decision_memory": {
-      "label": "Obsidian + Claude",
-      "description": "A local, backlinked knowledge graph for decisions and their reasoning, connected to Claude so your AI can read and write your decision log.",
-      "url": "https://obsidian.md"
+    "write_back": {
+      "number": 4,
+      "title": "The Write-Back Wall",
+      "essay_title": "\"I log things\" vs. \"The system captures what happened.\""
     },
-    "diy_write_back": {
-      "label": "basic-memory",
-      "description": "Lets your AI write what it learns back into plain Markdown files you own, so insights persist across tools and sessions.",
-      "url": "https://basicmemory.com"
+    "governance": {
+      "number": 5,
+      "title": "The Governance Wall",
+      "essay_title": "\"I trust my AI\" vs. \"Something checks my AI.\""
     },
-    "diy_governance": {
-      "label": "Watch this wall",
-      "description": "There's no DIY tool we'd stake our name on for governance yet — controlling and auditing what your AI can access is a platform-class problem."
-    },
-    "diy_economics": {
-      "label": "OpenRouter",
-      "description": "Routes your AI calls through one hosted dashboard so you can see spend per model and workflow and set usage alerts. No infrastructure to run.",
-      "url": "https://openrouter.ai"
-    },
-    "stay_put": {
-      "label": "Stay where you are",
-      "description": "Your current setup is working. The framework's job is to tell you when it's not — and right now, it's not."
-    },
-    "approaching_walls": {
-      "label": "Watch these walls",
-      "description": "You're approaching structural limits. Here's what to watch for."
-    },
-    "substrate_gstack": {
-      "label": "gstack",
-      "description": "Garry Tan's MIT-licensed cross-CLI operator overlay. Auto-detects Claude Code, Codex, Cursor, Gemini, and other AI coding agents. The right primary when your nearest wall is single and your working environment is already CLI- or IDE-first.",
-      "url": "https://github.com/garrytan/gstack",
-      "cta_primary": "Open gstack on GitHub",
-      "cta_secondary": "Read the wall-specific alternate below"
-    },
-    "substrate_agent_brain": {
-      "label": "Agent-brain layer (memory-os / gbrain)",
-      "description": "An agent-brain layer for takers building on agent runtimes. memory-os is the Hermes-stack 7-layer memory OS (MIT, ClaudioDrews); gbrain is the OpenClaw/Hermes brain layer (MIT, Garry Tan). Self-check between them based on which runtime you're on.",
-      "cta_primary": "Read memory-os and gbrain references"
+    "economics": {
+      "number": 6,
+      "title": "The Economics Wall",
+      "essay_title": "\"I pay the bill\" vs. \"I know what each workflow returns.\""
     }
-  }
+  },
+  "outcome_families": {
+    "os": "Walls an operating system solves",
+    "tool": "One wall, one good tool",
+    "forming": "Walls forming, not hit",
+    "fine": "You are fine, and here is how you will know when you are not"
+  },
+  "recommendations_source": "register.md: the Approved Recommendations Register. The page names no tool that is not an approved row there."
 }
